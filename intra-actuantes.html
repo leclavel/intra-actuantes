@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TP Final - Teorías y estéticas del arte interactivo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f5f5f5;
+        }
+
+        .page {
+            display: none;
+            text-align: left;
+            padding: 20px;
+            overflow-y: auto;
+            height: 100%;
+            box-sizing: border-box;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: black;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: white;
+            color: black;
+        }
+
+        fieldset {
+            border: 1px solid #fff;
+            padding: 0px;
+            margin: 0px;
+        }
+
+        legend {
+            font-weight: bold;
+        }
+
+        label {
+            display: block;
+            margin: 5px 0;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div id="page1" class="page active">
+        <h1>INTRA - ACTUANTES</h1>
+        <h2>Teoría y estéticas del arte interactivo</h2>
+        <p>Te propongo explorar de una manera diferente la obra que has seleccionado para hoy. En la siguiente página, deberás elegir las características que mejor se ajusten a la obra que has elegido para tu trabajo final de la materia.</p>
+        <button onclick="goToPage(2)">¡COMENCEMOS!</button>
+    </div>
+
+    <div id="page2" class="page">
+        <h2>Seleccioná una o más características que cumplen con el perfil de tu obra</h2>
+        <form id="characteristicsForm">
+            <fieldset id="GENERATIVO-PROPOSITIVO">
+                <label><input type="checkbox" name="gen-prop" value="Se materializa o desmaterializa en la experiencia misma."> Se materializa o desmaterializa como parte de la la experiencia misma propuesta.</label>
+                <label><input type="checkbox" name="gen-prop" value="Se auto-regenera, se auto-cura, se auto-organiza."> Se auto-regenera, se auto-cura o se auto-organiza.</label>
+                <label><input type="checkbox" name="gen-prop" value="Fue concebida en un laboratorio."> Fue concebida en un laboratorio.</label>
+                <label><input type="checkbox" name="gen-prop" value="Actúa -entre-, está en curso, es co-articulada en tramas."> Actúa -entre-, está -en curso-, es -co-articulada-.</label>
+                <label><input type="checkbox" name="gen-prop" value="Performa, no tiene características inherentemente determinadas de antemano, está siendo en contexto."> Performa en contexto, no tiene características inherentemente determinadas de antemano.</label>
+            </fieldset>
+
+            <fieldset id="CONSTRUCTIVO-EXPERIMENTAL">
+                <label><input type="checkbox" name="con-exp" value="Es controlada por el artista a priori, durante o a posteriori."> Es controlada a priori, durante o a posteriori.</label>
+                <label><input type="checkbox" name="con-exp" value="Presenta conexiones multidimensionales."> Presenta conexiones multidimensionales.</label>
+                <label><input type="checkbox" name="con-exp" value="Fue concebida en un espacio taller."> Fue concebida en un espacio taller.</label>
+                <label><input type="checkbox" name="con-exp" value="Tiende al quiebre, al fractal, repite patrones en diferentes escalas y orientaciones."> Tiende al quiebre, repite patrones en diferentes escalas y orientaciones.</label>
+                <label><input type="checkbox" name="con-exp" value="Fomenta dispersión, incertezas, es no lineal."> Fomenta dispersión, incertezas, es no lineal ni demanda orden secuencial.</label>
+                <label><input type="checkbox" name="con-exp" value="Acepta desvíos, es impredecible."> Acepta desvíos, es impredecible.</label>
+            </fieldset>
+
+            <fieldset id="COMPROMETIDO-PARTICIPATIVO">
+                <label><input type="checkbox" name="par-com" value="Genera encuentro entre dos o más personas."> Genera encuentro entre dos o más personas.</label>
+                <label><input type="checkbox" name="par-com" value="Mira desde más de una perspectiva."> Mira desde más de una perspectiva.</label>
+                <label><input type="checkbox" name="par-com" value="Hace que seas parte con ella."> Hace que seas -parte- con ella.</label>
+                <label><input type="checkbox" name="par-com" value="Da responsabilidades a quienes participan."> Da responsabilidades a quienes participan.</label>
+                <label><input type="checkbox" name="par-com" value="Revisa posibles dominaciones estratégicas de poder."> Revisa dominios de poder.</label>
+                <label><input type="checkbox" name="par-com" value="Está aliada a movimientos progresivos, sociales o políticos de manera explícita o no."> Está aliada a movimientos activistas.</label>
+            </fieldset>
+        </form>
+        <button onclick="processSelections()">ENVIAR MIS RESPUESTAS TILDADAS</button>
+    </div>
+
+    <div id="page3" class="page">
+        <h2>RESULTADOS</h2>
+        <canvas id="radarChart"></canvas>
+        <div id="resultText"></div>
+        <button onclick="restart()">VOLVER A EMPEZAR</button>
+    </div>
+
+    <script>
+        let currentPage = 1;
+        let radarChart;
+
+        function goToPage(pageNumber) {
+            document.querySelector(`#page${currentPage}`).classList.remove('active');
+            currentPage = pageNumber;
+            document.querySelector(`#page${currentPage}`).classList.add('active');
+        }
+
+        function processSelections() {
+            const form = document.getElementById('characteristicsForm');
+            const formData = new FormData(form);
+            const selections = {
+                'gen-prop': [],
+                'con-exp': [],
+                'par-com': []
+            };
+
+            for (let pair of formData.entries()) {
+                selections[pair[0]].push(pair[1]);
+            }
+
+            calculateChart(selections);
+            goToPage(3);
+        }
+
+        function calculateChart(selections) {
+            const genPropCount = selections['gen-prop'].length;
+            const conExpCount = selections['con-exp'].length;
+            const parComCount = selections['par-com'].length;
+
+            const data = {
+                labels: ['G-P', 'C-E', 'C-P'],
+                datasets: [{
+                    label: 'Mostrar figura',
+                    data: [genPropCount, conExpCount, parComCount],
+                    backgroundColor: 'rgba(0,0,0)',
+                    borderColor: 'rgba(0, 0, 0)',
+                    borderWidth: 4
+                }]
+            };
+
+            const ctx = document.getElementById('radarChart').getContext('2d');
+            if (radarChart) {
+                radarChart.destroy();
+            }
+            radarChart = new Chart(ctx, {
+                type: 'radar',
+                data: data,
+                options: {
+                    scale: {
+                        ticks: {
+                            fontColor: 'white',
+                            display: false
+                        }
+                    }
+                }
+            });
+
+            showResultText(genPropCount, conExpCount, parComCount);
+        }
+
+        function showResultText(genProp, conExp, parCom) {
+            const resultText = document.getElementById('resultText');
+            if (genProp > conExp && genProp > parCom) {
+                resultText.innerHTML =
+                    '<p>Tu selección es predominantemente:></p>' +
+                    '<p><strong>GENERATIVO - PROPOSITIVA</strong></p>' +
+                    '<p>Esta categoría engloba obras que no solo se crean para ser experimentadas sino que también se regeneran y transforman a lo largo del tiempo. Estas obras se auto-organizan y se adaptan, generando nuevas formas y significados con cada interacción. Están diseñadas para promover la reflexión sobre el rol del arte en la transformación social y tecnológica.</p>' +
+                    '<p><em>AUTORA DIRÍA: CÓMO</em></p>';
+            } else if (conExp > genProp && conExp > parCom) {
+                resultText.innerHTML =
+                    '<p>Tu selección es predominantemente:</p>' +
+                    '<p><strong>CONSTRUCTIVO - EXPERIMENTAL</strong></p>' +
+                    '<p>Obras que exploran nuevos métodos y procesos creativos. Estas piezas suelen ser concebidas en espacios de laboratorio o talleres y fomentan la experimentación y la innovación. La obra no tiene características inherentemente determinadas de antemano, y se construye y deconstruye en un continuo proceso de descubrimiento y prueba.</p>' +
+                    '<p><em>AUTORA DIRÍA: TE</em></p>';
+            } else if (parCom > genProp && parCom > conExp) {
+                resultText.innerHTML =
+                    '<p>Tu selección es predominantemente:</p>' +
+                    '<p><strong>COMPROMETIDO - PARTICIPATIVA</strong></p>' +
+                    '<p>Obras que buscan involucrar activamente a los participantes, promoviendo el encuentro. Estas obras examinan y desafían los dominios de poder y están alineadas con movimientos activistas. Promueven la dispersión y aceptan la imprevisibilidad, fomentando una interacción que no demanda orden secuencial y que da responsabilidades a los participantes.</p>' +
+                    '<p><em>AUTORA DIRÍA: VA</em></p>';
+            } else {
+                resultText.innerHTML =
+                    '<p>Tu selección es:</p>'+
+                    '<p><strong>BALANCEADA entre todas las categorías</strong></p>' +
+                    '<p>Las obras interactivas que se sitúan en el cruce entre lo generativo-propositivo, lo constructivo-experimental y lo comprometido-participativo son aquellas que se auto-regeneran y transforman continuamente a través de la interacción con los participantes. Concebidas en espacios colaborativos como laboratorios o talleres, estas obras no tienen características fijas y se construyen en un proceso constante de experimentación. Fomentan el encuentro, el diálogo y la reflexión crítica sobre las estructuras de poder y las responsabilidades compartidas. Estas piezas aceptan la imprevisibilidad y promueven la dispersión, ofreciendo una experiencia no lineal que invita a los participantes a ser co-creadores activos en el proceso artístico.</p>' +
+                    '<p><em>AUTORA DIRÍA: VA</em></p>';
+            }
+        }
+
+        function restart() {
+            document.getElementById('characteristicsForm').reset();
+            if (radarChart) {
+                radarChart.destroy();
+            }
+            radarChart = null;
+            goToPage(1);
+        }
+    </script>
+</body>
+</html>
